@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_USERNAME_LIST = "username_list";
     private static final String KEY_PASSWORD = "password";
     private static String username;
+    private Network wifiNetwork = null;
 
     private WebView webView;
     private List<String> usernameList = new ArrayList<String>();
@@ -162,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
+
     private void loadWebViewWithCredentials() {
 
         Toast loadingToast = Toast.makeText(MainActivity.this, "⏳ Loading the portal... Please wait.", Toast.LENGTH_SHORT);
@@ -185,9 +187,45 @@ public class MainActivity extends AppCompatActivity {
                     i = i % usernameList.size();
                     webView.evaluateJavascript(jsCode, null);
                 }
+
+                String jsCheck = "(() => {" +
+                        "   const text = document.body.innerText.toLowerCase();" +
+                        "   if (text.includes('successfully') && text.includes('logged') && text.includes('out')) {" +
+                        "       return 'loggedout';" +
+                        "   } else if (text.includes('successful') && text.includes('authentication')) {" +
+                        "       return 'loggedin';" +
+                        "   } else {" +
+                        "       return 'unknown';" +
+                        "   }" +
+                        "})()";
+
+                webView.evaluateJavascript(jsCheck, value -> {
+                    if (value != null) {
+
+                        value = value.replace("\"", "").trim();
+
+                        Log.d(TAG, "Status: " + value);
+
+                        if (value.equals("loggedout")) {
+
+                            Toast.makeText(MainActivity.this, "✅  Wi-Fi Logged Out Successfully", Toast.LENGTH_SHORT).show();
+
+                        } else if (value.equals("loggedin")) {
+
+                            Toast.makeText(MainActivity.this, "✅  Wi-Fi Logged In Successfully", Toast.LENGTH_SHORT).show();
+                            ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                            connectivityManager.reportNetworkConnectivity(wifiNetwork, true);
+
+                        }
+                    }
+                });
+
             }
         });
+
+
     }
+
 
     private void connectToWifi() {
         Toast.makeText(this, "📶 Connect to Wi-Fi and Come Back", Toast.LENGTH_SHORT).show();
@@ -203,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                 .build();
 
-        Network wifiNetwork = null;
+        wifiNetwork = null;
 
         Network[] allNetworks = connectivityManager.getAllNetworks();
         for (Network network : allNetworks) {
@@ -222,6 +260,8 @@ public class MainActivity extends AppCompatActivity {
             connectToWifi();
         }
     }
+
+
 
     void changeUsernameList() {
         final char[] superscripts = { '⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹' };
